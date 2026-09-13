@@ -4,6 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Marcador de Pontos - UNO Flip!</title>
+  
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="UNO Scorer" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons CDN -->
@@ -250,7 +259,7 @@
           </div>
         </div>
 
-        <!-- Calculadora de Cartas UNO FLIP (Botões Individuais Claros) -->
+        <!-- Calculadora de Cartas UNO FLIP -->
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
@@ -961,12 +970,11 @@
     function updateCalculatorDisplay() {
       let sum = state.calcCards.numSum || 0;
       
-      // Soma de todas as cartas individuais da calculadora
       for (const [key, qty] of Object.entries(state.calcCards)) {
         if (key === 'numSum') continue;
         let pts = 0;
         if (key === '10') pts = 10;
-        else if (key.startsWith('20')) pts = 20; // 20_draw5, 20_reverse, 20_skip, 20_flip
+        else if (key.startsWith('20')) pts = 20;
         else if (key === '30') pts = 30;
         else if (key === '40') pts = 40;
         else if (key === '50') pts = 50;
@@ -1456,6 +1464,13 @@
       const div = document.createElement('div');
       div.textContent = string;
       return div.innerHTML;
+    }
+
+    // Registro do Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg error:', err));
+      });
     }
 
     // Carregar aplicação
