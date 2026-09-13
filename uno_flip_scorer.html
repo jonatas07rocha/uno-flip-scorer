@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marcador de Pontos - UNO Flip!</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            uno: {
+              red: '#EF4444',
+              blue: '#3B82F6',
+              green: '#10B981',
+              yellow: '#F59E0B',
+              purple: '#8B5CF6',
+              orange: '#F97316'
+            }
+          },
+          animation: {
+            'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 4s ease-in-out infinite',
+            'scale-in': 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+          },
+          keyframes: {
+            scaleIn: {
+              '0%': { transform: 'scale(0.95)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    
+    /* Smooth custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-sans flex flex-col antialiased selection:bg-indigo-500 selection:text-white relative overflow-x-hidden transition-colors duration-300">
+
+  <!-- Cabeçalho -->
+  <header class="border-b border-slate-200 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 shadow-sm dark:shadow-md transition-colors duration-300">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="bg-gradient-to-tr from-amber-500 via-purple-600 to-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+          <i data-lucide="layers" class="w-6 h-6 animate-pulse-subtle"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            UNO Flip! Scorer
+            <span class="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30">Oficial</span>
+          </h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Pontuação Mattel (Meta: <span id="displayTargetPoints" class="font-semibold text-amber-500 dark:text-amber-400">500</span> pts)</p>
+        </div>
+      </div>
+
+      <!-- Botões de Ação do Cabeçalho -->
+      <div class="flex items-center gap-2">
+        <!-- Alternador de Tema -->
+        <button id="btnToggleTheme" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all border border-slate-300 dark:border-slate-700 shadow-sm text-xs font-medium" title="Alternar Tema (Auto pelo Dispositivo)">
+          <i id="themeIcon" data-lucide="sun" class="w-4 h-4 text-amber-500"></i>
+          <span class="hidden sm:inline" id="themeText">Tema</span>
+        </button>
+
+        <!-- Alternador de Som -->
+        <button id="btnToggleSound" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all border border-slate-300 dark:border-slate-700 shadow-sm text-xs font-medium" title="Ativar/Desativar Sons">
+          <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4 text-emerald-500"></i>
+          <span class="hidden sm:inline">Som</span>
+        </button>
+
+        <!-- Configurações -->
+        <button id="btnSettings" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all border border-slate-300 dark:border-slate-700 shadow-sm text-xs font-medium" title="Configurações da Partida">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-500 dark:text-indigo-400"></i>
+          <span class="hidden sm:inline">Ajustes</span>
+        </button>
+
+        <!-- Reiniciar -->
+        <button id="btnResetGame" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 dark:bg-red-950/40 hover:bg-red-500/20 dark:hover:bg-red-900/60 text-red-600 dark:text-red-300 transition-all border border-red-300 dark:border-red-800/40 shadow-sm text-xs font-medium" title="Reiniciar Partida">
+          <i data-lucide="rotate-ccw" class="w-4 h-4 text-red-500"></i>
+          <span class="hidden sm:inline">Zerar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="max-w-6xl mx-auto px-4 py-6 w-full grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
+
+    <!-- Coluna da Esquerda: Painel de Jogadores e Rodadas -->
+    <section class="lg:col-span-7 flex flex-col gap-6 w-full">
+
+      <!-- Placar Atual -->
+      <div class="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm dark:shadow-xl backdrop-blur-sm transition-colors duration-300">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+          <h2 class="text-base font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <i data-lucide="trophy" class="w-4 h-4 text-amber-500 dark:text-amber-400"></i> Classificação Atual
+          </h2>
+          <div class="flex items-center gap-2">
+            <span id="gameModeBadge" class="text-xs px-2.5 py-1 rounded-lg font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              Modo Oficial (Acumulativo)
+            </span>
+          </div>
+        </div>
+
+        <div id="playersList" class="mt-4 flex flex-col gap-3">
+          <!-- Renderizado via JS -->
+        </div>
+
+        <!-- Formulário para Inserir Novo Jogador -->
+        <form id="addPlayerForm" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex gap-2">
+          <input 
+            type="text" 
+            id="newPlayerName" 
+            placeholder="Nome do jogador..." 
+            class="flex-1 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700/80 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+            maxlength="20"
+            required
+          />
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/20">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Adicionar
+          </button>
+        </form>
+      </div>
+
+      <!-- Histórico de Rodadas -->
+      <div class="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm dark:shadow-xl flex flex-col flex-1 backdrop-blur-sm transition-colors duration-300">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <h2 class="text-base font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-slate-400"></i> Histórico de Rodadas
+          </h2>
+          <button id="btnUndoRound" class="text-xs text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 font-medium transition-colors flex items-center gap-1.5 disabled:opacity-30 disabled:hover:text-slate-400" disabled>
+            <i data-lucide="undo-2" class="w-3.5 h-3.5"></i> Desfazer Última
+          </button>
+        </div>
+
+        <div class="overflow-x-auto mt-3">
+          <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead class="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <tr>
+                <th class="py-2.5 px-3">#</th>
+                <th class="py-2.5 px-3">Lado</th>
+                <th class="py-2.5 px-3">Vencedor</th>
+                <th class="py-2.5 px-3 text-right">Pontos</th>
+              </tr>
+            </thead>
+            <tbody id="roundsHistoryTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <!-- Renderizado via JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="noRoundsMessage" class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs">
+          Nenhuma rodada finalizada ainda.
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Coluna da Direita: Registro da Rodada & Calculadora -->
+    <section class="lg:col-span-5 flex flex-col gap-6 w-full">
+
+      <div class="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm dark:shadow-xl flex flex-col gap-5 sticky top-20 backdrop-blur-sm transition-colors duration-300">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-500 dark:text-indigo-400"></i> Registrar Rodada
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Pontue o vencedor com a soma das mãos adversárias</p>
+          </div>
+          <span class="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg text-indigo-600 dark:text-indigo-300 border border-slate-200 dark:border-slate-700/60" id="currentRoundDisplay">
+            Rodada 1
+          </span>
+        </div>
+
+        <!-- Seletor de Vencedor -->
+        <div class="space-y-1.5">
+          <label for="roundWinnerSelect" class="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <i data-lucide="crown" class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400"></i> Vencedor da Rodada:
+          </label>
+          <select id="roundWinnerSelect" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all cursor-pointer">
+            <!-- Renderizado via JS -->
+          </select>
+        </div>
+
+        <!-- Lado em que a rodada terminou -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="shuffle" class="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400"></i> Lado Final da Partida:
+            </span>
+            <span class="text-[11px] text-slate-400 font-normal">Regra UNO Flip</span>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" id="sideNormalBtn" class="flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-300 shadow-sm">
+              <i data-lucide="sun" class="w-3.5 h-3.5"></i> Lado Normal
+            </button>
+            <button type="button" id="sideDarkBtn" class="flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
+              <i data-lucide="moon" class="w-3.5 h-3.5"></i> Lado Ousado
+            </button>
+          </div>
+        </div>
+
+        <!-- Totalizadores e Alternador de Entrada -->
+        <div class="bg-slate-100 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800/80 flex flex-col gap-3 transition-colors duration-300">
+          <div class="flex items-center justify-between">
+            <span class="text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider">Pontos Calculados</span>
+            <div class="flex items-baseline gap-1">
+              <span id="calculatedTotalPoints" class="text-3xl font-black tracking-tight text-amber-500 dark:text-amber-400 transition-all">0</span>
+              <span class="text-xs text-slate-500 font-medium">pts</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800/60 text-xs">
+            <span class="text-slate-500 dark:text-slate-400">Entrada manual direta:</span>
+            <input 
+              type="number" 
+              id="manualPointsInput" 
+              placeholder="0" 
+              min="0"
+              class="w-24 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-right px-2.5 py-1 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <!-- Calculadora de Cartas UNO FLIP (Botões Individuais Claros) -->
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="calculator" class="w-3.5 h-3.5 text-slate-400"></i> Calculadora de Mãos Adversárias
+            </span>
+            <button id="btnClearCalculator" class="text-[11px] text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors flex items-center gap-1">
+              <i data-lucide="trash" class="w-3 h-3"></i> Limpar
+            </button>
+          </div>
+
+          <!-- Grid com Botões Individuais para Todas as Cartas de Ação -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+            <!-- Numéricas 1 a 9 -->
+            <button data-card-val="1to9" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-slate-800 dark:text-slate-200">Cartas 1 a 9</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Valor de Face</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hidden">0</span>
+            </button>
+
+            <!-- Comprar 1 (10 pts) -->
+            <button data-card-val="10" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-blue-600 dark:text-blue-400">Comprar 1</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">10 pts</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-500/30 hidden">0</span>
+            </button>
+
+            <!-- Comprar 5 (20 pts) -->
+            <button data-card-val="20_draw5" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-indigo-600 dark:text-indigo-400">Comprar 5</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">20 pts</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hidden">0</span>
+            </button>
+
+            <!-- Inverter (20 pts) -->
+            <button data-card-val="20_reverse" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-purple-500/50 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-purple-600 dark:text-purple-400">Inverter</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">20 pts</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-500/30 hidden">0</span>
+            </button>
+
+            <!-- Pular (20 pts) -->
+            <button data-card-val="20_skip" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-cyan-600 dark:text-cyan-400">Pular</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">20 pts</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 hidden">0</span>
+            </button>
+
+            <!-- Virar (20 pts) -->
+            <button data-card-val="20_flip" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-amber-600 dark:text-amber-400">Virar (Flip)</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">20 pts</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-500/30 hidden">0</span>
+            </button>
+
+            <!-- Pular Todos (30 pts) -->
+            <button data-card-val="30" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-fuchsia-500/50 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-fuchsia-600 dark:text-fuchsia-400">Pular Todos</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">30 pts</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-fuchsia-100 dark:bg-fuchsia-900/50 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-500/30 hidden">0</span>
+            </button>
+
+            <!-- Curinga (40 pts) -->
+            <button data-card-val="40" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-pink-500/50 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-pink-600 dark:text-pink-400">Curinga</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">40 pts</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 border border-pink-500/30 hidden">0</span>
+            </button>
+
+            <!-- Curinga Comprar 2 (50 pts) -->
+            <button data-card-val="50" class="calc-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-orange-500/50 flex flex-col items-center justify-center transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <span class="font-bold text-orange-600 dark:text-orange-400">Curinga +2</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">50 pts</span>
+              <span class="card-count mt-1 text-[10px] px-1.5 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border border-orange-500/30 hidden">0</span>
+            </button>
+
+            <!-- Curinga Comprar Cor (60 pts) -->
+            <button data-card-val="60" class="calc-btn col-span-2 sm:col-span-3 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-rose-500/50 flex items-center justify-between px-4 transition-all hover:bg-slate-200/50 dark:hover:bg-slate-800/50 active:scale-95">
+              <div class="text-left">
+                <span class="font-bold text-rose-600 dark:text-rose-400">Curinga Comprar Cor</span>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">Compre até vir a cor escolhida + 2 cartas</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-800 dark:text-slate-300 font-mono font-bold">60 pts</span>
+                <span class="card-count text-[10px] px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-500/30 hidden">0</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Seletor auxiliar de cartas numéricas rápidas (1 a 9) -->
+        <div id="quickNumberPad" class="p-3 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 flex flex-col gap-2 transition-colors duration-300">
+          <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span>Adicionar número avulso (1 a 9):</span>
+            <span id="numPadRecent" class="text-indigo-600 dark:text-indigo-400 font-mono font-semibold"></span>
+          </span>
+          <div class="grid grid-cols-9 gap-1 text-xs">
+            <button data-num="1" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">1</button>
+            <button data-num="2" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">2</button>
+            <button data-num="3" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">3</button>
+            <button data-num="4" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">4</button>
+            <button data-num="5" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">5</button>
+            <button data-num="6" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">6</button>
+            <button data-num="7" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">7</button>
+            <button data-num="8" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">8</button>
+            <button data-num="9" class="num-btn py-1.5 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-slate-800 dark:text-slate-300 rounded font-semibold border border-slate-200 dark:border-slate-800 active:scale-95 transition-all">9</button>
+          </div>
+        </div>
+
+        <button id="btnSaveRound" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-amber-600 hover:from-indigo-500 hover:to-amber-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 text-sm tracking-wide active:scale-98">
+          <i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Rodada e Ver Placar
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- OVERLAY DE PLACAR EM TELA CHEIA (Fullscreen Overlay) -->
+  <div id="fullscreenScoreboardModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 hidden flex-col justify-between p-4 sm:p-8 lg:p-12 transition-opacity duration-300 select-none cursor-pointer">
+    
+    <!-- Top Header -->
+    <div class="w-full max-w-6xl mx-auto flex items-center justify-between border-b border-slate-800/80 pb-4">
+      <div class="flex items-center gap-3">
+        <div class="p-3 bg-gradient-to-tr from-amber-500 to-indigo-600 rounded-2xl shadow-xl shadow-amber-500/20 animate-bounce">
+          <i data-lucide="trophy" class="w-8 h-8 text-white"></i>
+        </div>
+        <div>
+          <h2 class="text-xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+            UNO FLIP! <span class="text-indigo-400 font-extrabold">PLACAR</span>
+          </h2>
+          <p id="fsRoundSubtitle" class="text-xs sm:text-sm text-slate-400 font-medium">Resultado da Rodada</p>
+        </div>
+      </div>
+
+      <!-- Instruction Badge -->
+      <div class="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 px-3 py-2 rounded-2xl animate-pulse">
+        <i data-lucide="mouse-pointer" class="w-4 h-4 text-indigo-400"></i>
+        <span class="text-xs sm:text-sm text-indigo-300 font-semibold hidden md:inline">
+          Mova o mouse ou clique para fechar
+        </span>
+        <span class="text-xs sm:text-sm text-indigo-300 font-semibold md:hidden">
+          Toque para fechar
+        </span>
+      </div>
+    </div>
+
+    <!-- Main Content: Giant Leaderboard Grid -->
+    <div class="w-full max-w-6xl mx-auto my-auto py-6">
+      <!-- Winner Callout Banner -->
+      <div id="fsWinnerBanner" class="mb-8 p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-indigo-500/20 border border-amber-500/40 text-center shadow-2xl flex flex-col sm:flex-row items-center justify-center gap-3">
+        <span class="text-2xl">🎉</span>
+        <span id="fsWinnerBannerText" class="text-base sm:text-xl font-bold text-amber-300">
+          Vencedor da rodada!
+        </span>
+      </div>
+
+      <!-- Player Cards Grid -->
+      <div id="fsPlayersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </div>
+
+    <!-- Bottom Footer Bar -->
+    <div class="w-full max-w-6xl mx-auto flex items-center justify-center pt-4 border-t border-slate-800/80">
+      <p class="text-xs sm:text-sm text-slate-400 flex items-center gap-2 font-medium">
+        <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+        Qualquer movimento ou clique retornará à tela principal de pontuação
+      </p>
+    </div>
+  </div>
+
+  <!-- MODAL CUSTOMIZADO DE ALERTA (Substitui alert()) -->
+  <div id="alertModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-scale-in text-center">
+      <div class="w-12 h-12 mx-auto rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+        <i id="alertModalIcon" data-lucide="info" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h3 id="alertModalTitle" class="text-base font-bold text-slate-900 dark:text-slate-100">Aviso</h3>
+        <p id="alertModalMessage" class="text-sm text-slate-600 dark:text-slate-300 mt-1"></p>
+      </div>
+      <div class="pt-2">
+        <button id="btnOkAlertModal" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs transition">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CUSTOMIZADO DE CONFIRMAÇÃO (Substitui confirm()) -->
+  <div id="confirmModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-scale-in text-center">
+      <div class="w-12 h-12 mx-auto rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
+        <i id="confirmModalIcon" data-lucide="help-circle" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h3 id="confirmModalTitle" class="text-base font-bold text-slate-900 dark:text-slate-100">Confirmação</h3>
+        <p id="confirmModalMessage" class="text-sm text-slate-600 dark:text-slate-300 mt-1"></p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button id="btnCancelConfirmModal" class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs transition">
+          Cancelar
+        </button>
+        <button id="btnOkConfirmModal" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs transition">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Renomear Jogador -->
+  <div id="editPlayerModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-scale-in">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <i data-lucide="pencil" class="w-4 h-4 text-indigo-500 dark:text-indigo-400"></i> Renomear Jogador
+        </h3>
+        <button id="btnCloseEditPlayer" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="editPlayerForm" class="space-y-4">
+        <input type="hidden" id="editPlayerId" />
+        <div class="space-y-1.5">
+          <label for="editPlayerNameInput" class="text-xs font-medium text-slate-700 dark:text-slate-300">Novo Nome do Jogador:</label>
+          <input 
+            type="text" 
+            id="editPlayerNameInput" 
+            maxlength="20"
+            required
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+          />
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" id="btnCancelEditPlayer" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition">
+            Salvar Nome
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Configurações -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-scale-in">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-500 dark:text-indigo-400"></i> Configurações da Partida
+        </h3>
+        <button id="btnCloseSettings" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-sm">
+        <div class="space-y-1.5">
+          <label for="targetPointsInput" class="font-medium text-slate-700 dark:text-slate-300">Meta de Pontos para Vitória:</label>
+          <input 
+            type="number" 
+            id="targetPointsInput" 
+            value="500" 
+            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <p class="text-[11px] text-slate-400">Oficial Mattel: 500 pontos.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="font-medium text-slate-700 dark:text-slate-300">Sistema de Pontuação:</label>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700">
+              <input type="radio" name="scoringMode" value="official" checked class="text-indigo-600 focus:ring-indigo-500" />
+              <div>
+                <p class="font-semibold text-slate-800 dark:text-slate-200 text-xs">Oficial (Vencedor soma pontos)</p>
+                <p class="text-[11px] text-slate-400">O vencedor da rodada recebe todos os pontos das cartas dos adversários.</p>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700">
+              <input type="radio" name="scoringMode" value="penalty" class="text-indigo-600 focus:ring-indigo-500" />
+              <div>
+                <p class="font-semibold text-slate-800 dark:text-slate-200 text-xs">Penalidade / Eliminação</p>
+                <p class="text-[11px] text-slate-400">Cada jogador acumula os pontos de suas próprias cartas restantes. Vence quem tiver menos ao final.</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
+        <button id="btnSaveSettings" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition">
+          Salvar Alterações
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Vitória -->
+  <div id="victoryModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-amber-500/40 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 animate-scale-in">
+      <div class="w-16 h-16 mx-auto rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center border border-amber-500/30 animate-bounce">
+        <i data-lucide="crown" class="w-9 h-9"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-black text-slate-900 dark:text-white">Fim de Jogo!</h3>
+        <p id="victoryMessage" class="text-sm text-slate-600 dark:text-slate-300 mt-2 font-medium"></p>
+      </div>
+      <div class="flex flex-col gap-2 pt-2">
+        <button id="btnNewGameVictory" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm transition">
+          Nova Partida
+        </button>
+        <button id="btnCloseVictory" class="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-xl transition">
+          Visualizar Placar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Gerenciador de Tema (Light Mode / Dark Mode automático com o dispositivo + manual)
+    let currentThemeMode = 'auto';
+    const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function updateTheme() {
+      const isDark = currentThemeMode === 'auto' ? mediaQueryDark.matches : currentThemeMode === 'dark';
+      const themeText = document.getElementById('themeText');
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        themeIcon.setAttribute('data-lucide', 'sun');
+        themeIcon.className = 'w-4 h-4 text-amber-400';
+        if (themeText) themeText.textContent = 'Tema Escuro';
+      } else {
+        document.documentElement.classList.remove('dark');
+        themeIcon.setAttribute('data-lucide', 'moon');
+        themeIcon.className = 'w-4 h-4 text-indigo-600';
+        if (themeText) themeText.textContent = 'Tema Claro';
+      }
+      lucide.createIcons();
+    }
+
+    mediaQueryDark.addEventListener('change', () => {
+      if (currentThemeMode === 'auto') updateTheme();
+    });
+
+    // Sintetizador de Efeitos Sonoros via Web Audio API
+    class SoundEffects {
+      constructor() {
+        this.enabled = true;
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      }
+
+      playClick() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.05);
+          gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.05);
+        } catch (e) {}
+      }
+
+      playSuccess() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const startTime = this.ctx.currentTime + idx * 0.08;
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.12, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + 0.3);
+          });
+        } catch (e) {}
+      }
+
+      playFanfare() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const startTime = this.ctx.currentTime + idx * 0.12;
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.15, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + 0.4);
+          });
+        } catch (e) {}
+      }
+    }
+
+    const sound = new SoundEffects();
+
+    // MODAIS SISTÊMICOS PERSONALIZADOS (ALERT & CONFIRM)
+    const alertModal = document.getElementById('alertModal');
+    const alertModalTitle = document.getElementById('alertModalTitle');
+    const alertModalMessage = document.getElementById('alertModalMessage');
+    const btnOkAlertModal = document.getElementById('btnOkAlertModal');
+
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmModalTitle = document.getElementById('confirmModalTitle');
+    const confirmModalMessage = document.getElementById('confirmModalMessage');
+    const btnOkConfirmModal = document.getElementById('btnOkConfirmModal');
+    const btnCancelConfirmModal = document.getElementById('btnCancelConfirmModal');
+
+    let onConfirmCallback = null;
+
+    function showAlert(message, title = 'Aviso') {
+      alertModalTitle.textContent = title;
+      alertModalMessage.textContent = message;
+      alertModal.classList.remove('hidden');
+      sound.playClick();
+      lucide.createIcons();
+    }
+
+    btnOkAlertModal.addEventListener('click', () => {
+      alertModal.classList.add('hidden');
+      sound.playClick();
+    });
+
+    function showConfirm(message, onConfirm, title = 'Confirmação') {
+      confirmModalTitle.textContent = title;
+      confirmModalMessage.textContent = message;
+      onConfirmCallback = onConfirm;
+      confirmModal.classList.remove('hidden');
+      sound.playClick();
+      lucide.createIcons();
+    }
+
+    btnOkConfirmModal.addEventListener('click', () => {
+      confirmModal.classList.add('hidden');
+      sound.playClick();
+      if (onConfirmCallback) onConfirmCallback();
+    });
+
+    btnCancelConfirmModal.addEventListener('click', () => {
+      confirmModal.classList.add('hidden');
+      sound.playClick();
+    });
+
+    // Estado da Aplicação
+    const state = {
+      targetPoints: 500,
+      mode: 'official',
+      roundSide: 'Normal',
+      players: [
+        { id: 1, name: 'Jogador 1', score: 0 },
+        { id: 2, name: 'Jogador 2', score: 0 },
+        { id: 3, name: 'Jogador 3', score: 0 }
+      ],
+      rounds: [],
+      calcCards: {
+        numSum: 0,
+        10: 0,
+        '20_draw5': 0,
+        '20_reverse': 0,
+        '20_skip': 0,
+        '20_flip': 0,
+        30: 0,
+        40: 0,
+        50: 0,
+        60: 0
+      }
+    };
+
+    // Controle de estado para Tela Cheia por movimento/clique
+    let isFullscreenScoreboardActive = false;
+    let fullscreenOpenedAt = 0;
+    let fsInitialMouseX = 0;
+    let fsInitialMouseY = 0;
+
+    // Elementos DOM
+    const playersList = document.getElementById('playersList');
+    const addPlayerForm = document.getElementById('addPlayerForm');
+    const newPlayerName = document.getElementById('newPlayerName');
+    const roundWinnerSelect = document.getElementById('roundWinnerSelect');
+    const calculatedTotalPoints = document.getElementById('calculatedTotalPoints');
+    const manualPointsInput = document.getElementById('manualPointsInput');
+    const roundsHistoryTableBody = document.getElementById('roundsHistoryTableBody');
+    const noRoundsMessage = document.getElementById('noRoundsMessage');
+    const currentRoundDisplay = document.getElementById('currentRoundDisplay');
+    const btnSaveRound = document.getElementById('btnSaveRound');
+    const btnClearCalculator = document.getElementById('btnClearCalculator');
+    const btnUndoRound = document.getElementById('btnUndoRound');
+    const btnSettings = document.getElementById('btnSettings');
+    const btnCloseSettings = document.getElementById('btnCloseSettings');
+    const btnSaveSettings = document.getElementById('btnSaveSettings');
+    const settingsModal = document.getElementById('settingsModal');
+    const targetPointsInput = document.getElementById('targetPointsInput');
+    const displayTargetPoints = document.getElementById('displayTargetPoints');
+    const gameModeBadge = document.getElementById('gameModeBadge');
+    const btnResetGame = document.getElementById('btnResetGame');
+    const sideNormalBtn = document.getElementById('sideNormalBtn');
+    const sideDarkBtn = document.getElementById('sideDarkBtn');
+    const victoryModal = document.getElementById('victoryModal');
+    const victoryMessage = document.getElementById('victoryMessage');
+    const btnNewGameVictory = document.getElementById('btnNewGameVictory');
+    const btnCloseVictory = document.getElementById('btnCloseVictory');
+    const numPadRecent = document.getElementById('numPadRecent');
+    const btnToggleSound = document.getElementById('btnToggleSound');
+    const soundIcon = document.getElementById('soundIcon');
+    const btnToggleTheme = document.getElementById('btnToggleTheme');
+    const themeIcon = document.getElementById('themeIcon');
+
+    // Elementos do Modal de Editar Jogador
+    const editPlayerModal = document.getElementById('editPlayerModal');
+    const editPlayerForm = document.getElementById('editPlayerForm');
+    const editPlayerId = document.getElementById('editPlayerId');
+    const editPlayerNameInput = document.getElementById('editPlayerNameInput');
+    const btnCloseEditPlayer = document.getElementById('btnCloseEditPlayer');
+    const btnCancelEditPlayer = document.getElementById('btnCancelEditPlayer');
+
+    // Elementos da Tela Cheia (Fullscreen Overlay)
+    const fullscreenScoreboardModal = document.getElementById('fullscreenScoreboardModal');
+    const fsRoundSubtitle = document.getElementById('fsRoundSubtitle');
+    const fsWinnerBannerText = document.getElementById('fsWinnerBannerText');
+    const fsPlayersGrid = document.getElementById('fsPlayersGrid');
+
+    // Inicialização
+    function init() {
+      updateTheme();
+      loadState();
+      renderPlayers();
+      renderWinnerSelect();
+      renderHistory();
+      updateCalculatorDisplay();
+      bindEvents();
+      lucide.createIcons();
+    }
+
+    // Persistência
+    function saveState() {
+      localStorage.setItem('uno_flip_scorer_state', JSON.stringify({
+        targetPoints: state.targetPoints,
+        mode: state.mode,
+        players: state.players,
+        rounds: state.rounds
+      }));
+    }
+
+    function loadState() {
+      const saved = localStorage.getItem('uno_flip_scorer_state');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          state.targetPoints = parsed.targetPoints || 500;
+          state.mode = parsed.mode || 'official';
+          state.players = parsed.players || state.players;
+          state.rounds = parsed.rounds || [];
+          displayTargetPoints.textContent = state.targetPoints;
+          targetPointsInput.value = state.targetPoints;
+          updateModeBadge();
+        } catch (e) {
+          console.error("Erro ao carregar dados salvos:", e);
+        }
+      }
+    }
+
+    // Atualização da Lista de Jogadores na Tela Principal
+    function renderPlayers() {
+      playersList.innerHTML = '';
+
+      const sorted = [...state.players].sort((a, b) => {
+        return state.mode === 'official' ? b.score - a.score : a.score - b.score;
+      });
+
+      sorted.forEach((player, index) => {
+        const percentage = Math.min(100, Math.max(0, (player.score / state.targetPoints) * 100));
+        const isLeader = index === 0 && player.score > 0;
+        const reachedTarget = player.score >= state.targetPoints;
+
+        const row = document.createElement('div');
+        row.className = `p-3.5 rounded-xl border transition-all ${
+          reachedTarget 
+            ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/60 shadow-md shadow-amber-500/10' 
+            : isLeader
+            ? 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-500/40'
+            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
+        }`;
+
+        row.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                index === 0 ? 'bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-950 shadow-md shadow-amber-500/20' :
+                index === 1 ? 'bg-slate-300 dark:bg-slate-400 text-slate-950' :
+                index === 2 ? 'bg-amber-800 text-amber-100' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+              }">
+                ${index + 1}
+              </span>
+              <span class="font-semibold text-sm text-slate-900 dark:text-slate-100">${escapeHtml(player.name)}</span>
+              
+              <!-- Botão de Editar Nome (Lápis) -->
+              <button data-edit-id="${player.id}" class="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 transition" title="Renomear jogador">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+
+              ${isLeader ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">Líder</span>' : ''}
+              ${reachedTarget ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold">Meta Atingida</span>' : ''}
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="text-base font-bold font-mono text-slate-900 dark:text-slate-100">${player.score} <span class="text-xs text-slate-500 dark:text-slate-400 font-normal">pts</span></span>
+              ${state.players.length > 2 ? `
+                <button data-remove-id="${player.id}" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 transition" title="Remover jogador">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="w-full bg-slate-200 dark:bg-slate-800/80 rounded-full h-2 overflow-hidden">
+            <div 
+              class="h-2 rounded-full transition-all duration-500 ${reachedTarget ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}" 
+              style="width: ${percentage}%"
+            ></div>
+          </div>
+        `;
+        playersList.appendChild(row);
+      });
+
+      renderWinnerSelect();
+      lucide.createIcons();
+    }
+
+    function renderWinnerSelect() {
+      const currentSelected = roundWinnerSelect.value;
+      roundWinnerSelect.innerHTML = '';
+      state.players.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player.id;
+        option.textContent = player.name;
+        roundWinnerSelect.appendChild(option);
+      });
+      if (currentSelected) roundWinnerSelect.value = currentSelected;
+    }
+
+    function renderHistory() {
+      roundsHistoryTableBody.innerHTML = '';
+      currentRoundDisplay.textContent = `Rodada ${state.rounds.length + 1}`;
+
+      if (state.rounds.length === 0) {
+        noRoundsMessage.classList.remove('hidden');
+        btnUndoRound.disabled = true;
+        return;
+      }
+
+      noRoundsMessage.classList.add('hidden');
+      btnUndoRound.disabled = false;
+
+      [...state.rounds].reverse().forEach((r) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-mono text-slate-500 dark:text-slate-400">${r.roundNumber}</td>
+          <td class="py-2.5 px-3">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${
+              r.side === 'Normal' 
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20' 
+                : 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20'
+            }">
+              <i data-lucide="${r.side === 'Normal' ? 'sun' : 'moon'}" class="w-3 h-3"></i>
+              ${r.side}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 font-medium text-slate-800 dark:text-slate-200">${escapeHtml(r.winnerName)}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-amber-600 dark:text-amber-400">+${r.points}</td>
+        `;
+        roundsHistoryTableBody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function updateCalculatorDisplay() {
+      let sum = state.calcCards.numSum || 0;
+      
+      // Soma de todas as cartas individuais da calculadora
+      for (const [key, qty] of Object.entries(state.calcCards)) {
+        if (key === 'numSum') continue;
+        let pts = 0;
+        if (key === '10') pts = 10;
+        else if (key.startsWith('20')) pts = 20; // 20_draw5, 20_reverse, 20_skip, 20_flip
+        else if (key === '30') pts = 30;
+        else if (key === '40') pts = 40;
+        else if (key === '50') pts = 50;
+        else if (key === '60') pts = 60;
+        sum += (qty || 0) * pts;
+      }
+
+      const manualVal = parseInt(manualPointsInput.value, 10);
+      const total = !isNaN(manualVal) && manualVal > 0 ? manualVal : sum;
+
+      calculatedTotalPoints.textContent = total;
+
+      document.querySelectorAll('.calc-btn').forEach(btn => {
+        const val = btn.dataset.cardVal;
+        const countSpan = btn.querySelector('.card-count');
+        if (val && val !== '1to9') {
+          const qty = state.calcCards[val] || 0;
+          if (qty > 0) {
+            countSpan.textContent = qty;
+            countSpan.classList.remove('hidden');
+          } else {
+            countSpan.classList.add('hidden');
+          }
+        }
+      });
+    }
+
+    function updateModeBadge() {
+      if (state.mode === 'official') {
+        gameModeBadge.textContent = 'Modo Oficial (Acumulativo)';
+        gameModeBadge.className = 'text-xs px-2.5 py-1 rounded-lg font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+      } else {
+        gameModeBadge.textContent = 'Modo Penalidade';
+        gameModeBadge.className = 'text-xs px-2.5 py-1 rounded-lg font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+      }
+    }
+
+    function checkVictory() {
+      const winner = state.players.find(p => p.score >= state.targetPoints);
+      if (winner) {
+        victoryMessage.textContent = `${winner.name} atingiu ${winner.score} pontos e venceu a partida! 🎉`;
+        victoryModal.classList.remove('hidden');
+        sound.playFanfare();
+        if (window.confetti) {
+          window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+      }
+    }
+
+    function clearCalculator() {
+      state.calcCards = {
+        numSum: 0,
+        10: 0,
+        '20_draw5': 0,
+        '20_reverse': 0,
+        '20_skip': 0,
+        '20_flip': 0,
+        30: 0,
+        40: 0,
+        50: 0,
+        60: 0
+      };
+      manualPointsInput.value = '';
+      numPadRecent.textContent = '';
+      updateCalculatorDisplay();
+    }
+
+    // =========================================================================
+    // LÓGICA DE PLACAR EM TELA CHEIA (FULLSCREEN OVERLAY & AUTO-EXIT ON MOUSE/CLICK)
+    // =========================================================================
+    function openFullscreenScoreboard(lastRoundWinnerName, lastRoundPoints) {
+      const currentRoundNum = state.rounds.length;
+      fsRoundSubtitle.textContent = `Resultado da Rodada ${currentRoundNum} (Lado ${state.roundSide})`;
+      fsWinnerBannerText.textContent = `🏆 ${lastRoundWinnerName} venceu a rodada com +${lastRoundPoints} pontos!`;
+
+      fsPlayersGrid.innerHTML = '';
+
+      const sortedPlayers = [...state.players].sort((a, b) => {
+        return state.mode === 'official' ? b.score - a.score : a.score - b.score;
+      });
+
+      sortedPlayers.forEach((player, index) => {
+        const percentage = Math.min(100, Math.max(0, (player.score / state.targetPoints) * 100));
+        const isRank1 = index === 0;
+        const isWinnerThisRound = player.name === lastRoundWinnerName;
+        const pointsRemaining = Math.max(0, state.targetPoints - player.score);
+
+        const card = document.createElement('div');
+        card.className = `p-6 rounded-3xl border flex flex-col justify-between transition-all duration-300 transform hover:scale-105 shadow-2xl ${
+          isRank1 
+            ? 'bg-gradient-to-br from-amber-500/20 via-indigo-950/80 to-slate-950 border-amber-500/60 ring-2 ring-amber-500/30' 
+            : 'bg-slate-900/90 border-slate-800'
+        }`;
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <span class="w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-base shadow-lg ${
+                  index === 0 ? 'bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-950' :
+                  index === 1 ? 'bg-slate-300 text-slate-950' :
+                  index === 2 ? 'bg-amber-800 text-amber-100' : 'bg-slate-800 text-slate-400'
+                }">
+                  #${index + 1}
+                </span>
+                <div>
+                  <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    ${escapeHtml(player.name)}
+                    ${isWinnerThisRound ? '<span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse font-semibold">+ Rodada</span>' : ''}
+                  </h3>
+                  <p class="text-xs text-slate-400 font-medium">
+                    ${isRank1 ? '👑 Líder do jogo' : `Faltam ${pointsRemaining} pts`}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="my-6 text-center py-4 bg-slate-950/60 rounded-2xl border border-slate-800/80">
+              <span class="text-5xl font-black font-mono tracking-tight text-white">${player.score}</span>
+              <span class="text-sm font-semibold text-slate-400 ml-1">pts</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-semibold text-slate-400 mb-2">
+              <span>Progresso</span>
+              <span>${Math.round(percentage)}%</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden p-0.5">
+              <div 
+                class="h-full rounded-full transition-all duration-700 ${isRank1 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}"
+                style="width: ${percentage}%"
+              ></div>
+            </div>
+          </div>
+        `;
+
+        fsPlayersGrid.appendChild(card);
+      });
+
+      fullscreenScoreboardModal.classList.remove('hidden');
+      fullscreenScoreboardModal.classList.add('flex');
+
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+
+      sound.playSuccess();
+
+      if (window.confetti && lastRoundPoints >= 30) {
+        window.confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+      }
+
+      isFullscreenScoreboardActive = true;
+      fullscreenOpenedAt = Date.now();
+      fsInitialMouseX = -1;
+      fsInitialMouseY = -1;
+
+      window.addEventListener('mousemove', handleFullscreenMouseMove);
+      window.addEventListener('click', handleFullscreenExitClick);
+      window.addEventListener('touchstart', handleFullscreenExitClick);
+      window.addEventListener('keydown', handleFullscreenExitClick);
+      lucide.createIcons();
+    }
+
+    function closeFullscreenScoreboard() {
+      if (!isFullscreenScoreboardActive) return;
+
+      isFullscreenScoreboardActive = false;
+      fullscreenScoreboardModal.classList.add('hidden');
+      fullscreenScoreboardModal.classList.remove('flex');
+
+      window.removeEventListener('mousemove', handleFullscreenMouseMove);
+      window.removeEventListener('click', handleFullscreenExitClick);
+      window.removeEventListener('touchstart', handleFullscreenExitClick);
+      window.removeEventListener('keydown', handleFullscreenExitClick);
+
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    function handleFullscreenMouseMove(e) {
+      if (!isFullscreenScoreboardActive) return;
+
+      if (Date.now() - fullscreenOpenedAt < 400) {
+        fsInitialMouseX = e.clientX;
+        fsInitialMouseY = e.clientY;
+        return;
+      }
+
+      if (fsInitialMouseX === -1) {
+        fsInitialMouseX = e.clientX;
+        fsInitialMouseY = e.clientY;
+        return;
+      }
+
+      const distance = Math.hypot(e.clientX - fsInitialMouseX, e.clientY - fsInitialMouseY);
+      if (distance > 15) {
+        closeFullscreenScoreboard();
+      }
+    }
+
+    function handleFullscreenExitClick(e) {
+      if (!isFullscreenScoreboardActive) return;
+
+      if (Date.now() - fullscreenOpenedAt < 250) return;
+
+      closeFullscreenScoreboard();
+    }
+
+    // Listeners e Ações de Interface
+    function bindEvents() {
+      // Alternador Manual de Tema
+      btnToggleTheme.addEventListener('click', () => {
+        sound.playClick();
+        if (currentThemeMode === 'auto') {
+          currentThemeMode = mediaQueryDark.matches ? 'light' : 'dark';
+        } else if (currentThemeMode === 'dark') {
+          currentThemeMode = 'light';
+        } else {
+          currentThemeMode = 'dark';
+        }
+        updateTheme();
+      });
+
+      // Alternador de som
+      btnToggleSound.addEventListener('click', () => {
+        sound.enabled = !sound.enabled;
+        if (sound.enabled) {
+          soundIcon.setAttribute('data-lucide', 'volume-2');
+          soundIcon.className = 'w-4 h-4 text-emerald-500';
+          sound.playClick();
+        } else {
+          soundIcon.setAttribute('data-lucide', 'volume-x');
+          soundIcon.className = 'w-4 h-4 text-slate-400';
+        }
+        lucide.createIcons();
+      });
+
+      // Alternador de lado da carta
+      sideNormalBtn.addEventListener('click', () => {
+        sound.playClick();
+        state.roundSide = 'Normal';
+        sideNormalBtn.className = 'flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-300 shadow-sm';
+        sideDarkBtn.className = 'flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+      });
+
+      sideDarkBtn.addEventListener('click', () => {
+        sound.playClick();
+        state.roundSide = 'Ousado';
+        sideDarkBtn.className = 'flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all bg-purple-500/10 border-purple-500/40 text-purple-600 dark:text-purple-300 shadow-sm';
+        sideNormalBtn.className = 'flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+      });
+
+      // Botões da Calculadora de Ação
+      document.querySelectorAll('.calc-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sound.playClick();
+          const val = btn.dataset.cardVal;
+          if (val && val !== '1to9') {
+            state.calcCards[val] = (state.calcCards[val] || 0) + 1;
+            manualPointsInput.value = '';
+            updateCalculatorDisplay();
+          }
+        });
+      });
+
+      // Teclado Numérico Rápido (1 a 9)
+      document.querySelectorAll('.num-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sound.playClick();
+          const num = parseInt(btn.dataset.num, 10);
+          state.calcCards.numSum += num;
+          numPadRecent.textContent = `+${num} (Total números: ${state.calcCards.numSum} pts)`;
+          manualPointsInput.value = '';
+          updateCalculatorDisplay();
+        });
+      });
+
+      // Digitação manual de pontos
+      manualPointsInput.addEventListener('input', () => {
+        updateCalculatorDisplay();
+      });
+
+      // Limpar Calculadora
+      btnClearCalculator.addEventListener('click', () => {
+        sound.playClick();
+        clearCalculator();
+      });
+
+      // Adicionar Jogador
+      addPlayerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        sound.playClick();
+        const name = newPlayerName.value.trim();
+        if (!name) return;
+
+        state.players.push({
+          id: Date.now(),
+          name,
+          score: 0
+        });
+
+        newPlayerName.value = '';
+        saveState();
+        renderPlayers();
+      });
+
+      // Ações na lista de jogadores (Editar ou Remover)
+      playersList.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('[data-edit-id]');
+        if (editBtn) {
+          sound.playClick();
+          const id = Number(editBtn.dataset.editId);
+          const player = state.players.find(p => p.id === id);
+          if (player) {
+            editPlayerId.value = player.id;
+            editPlayerNameInput.value = player.name;
+            editPlayerModal.classList.remove('hidden');
+            setTimeout(() => editPlayerNameInput.select(), 50);
+          }
+          return;
+        }
+
+        const removeBtn = e.target.closest('[data-remove-id]');
+        if (removeBtn) {
+          sound.playClick();
+          const id = Number(removeBtn.dataset.removeId);
+          showConfirm('Tem certeza de que deseja remover este jogador da partida?', () => {
+            state.players = state.players.filter(p => p.id !== id);
+            saveState();
+            renderPlayers();
+          }, 'Remover Jogador');
+        }
+      });
+
+      // Form de Edição de Nome do Jogador
+      editPlayerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        sound.playClick();
+        const id = Number(editPlayerId.value);
+        const newName = editPlayerNameInput.value.trim();
+        if (!newName) return;
+
+        const player = state.players.find(p => p.id === id);
+        if (player) {
+          state.rounds.forEach(r => {
+            if (r.winnerId === player.id) r.winnerName = newName;
+          });
+          player.name = newName;
+          saveState();
+          renderPlayers();
+          renderHistory();
+        }
+        editPlayerModal.classList.add('hidden');
+      });
+
+      btnCloseEditPlayer.addEventListener('click', () => {
+        sound.playClick();
+        editPlayerModal.classList.add('hidden');
+      });
+
+      btnCancelEditPlayer.addEventListener('click', () => {
+        sound.playClick();
+        editPlayerModal.classList.add('hidden');
+      });
+
+      // Confirmar Rodada e Abrir Tela Cheia
+      btnSaveRound.addEventListener('click', () => {
+        const winnerId = Number(roundWinnerSelect.value);
+        const player = state.players.find(p => p.id === winnerId);
+        if (!player) {
+          showAlert('Por favor, selecione um jogador vencedor válido.', 'Atenção');
+          return;
+        }
+
+        const points = parseInt(calculatedTotalPoints.textContent, 10) || 0;
+        if (points <= 0) {
+          showConfirm('A pontuação calculada é 0. Deseja registrar a rodada mesmo assim?', () => {
+            processSaveRound(player, points);
+          }, 'Confirmar Pontuação Zero');
+        } else {
+          processSaveRound(player, points);
+        }
+      });
+
+      function processSaveRound(player, points) {
+        player.score += points;
+
+        state.rounds.push({
+          roundNumber: state.rounds.length + 1,
+          winnerId: player.id,
+          winnerName: player.name,
+          points: points,
+          side: state.roundSide
+        });
+
+        saveState();
+        renderPlayers();
+        renderHistory();
+        clearCalculator();
+
+        openFullscreenScoreboard(player.name, points);
+        checkVictory();
+      }
+
+      // Desfazer Rodada
+      btnUndoRound.addEventListener('click', () => {
+        sound.playClick();
+        if (state.rounds.length === 0) return;
+        const lastRound = state.rounds.pop();
+        const player = state.players.find(p => p.id === lastRound.winnerId);
+        if (player) {
+          player.score = Math.max(0, player.score - lastRound.points);
+        }
+        saveState();
+        renderPlayers();
+        renderHistory();
+      });
+
+      // Modal de Configurações
+      btnSettings.addEventListener('click', () => {
+        sound.playClick();
+        targetPointsInput.value = state.targetPoints;
+        const radio = document.querySelector(`input[name="scoringMode"][value="${state.mode}"]`);
+        if (radio) radio.checked = true;
+        settingsModal.classList.remove('hidden');
+      });
+
+      btnCloseSettings.addEventListener('click', () => {
+        sound.playClick();
+        settingsModal.classList.add('hidden');
+      });
+
+      btnSaveSettings.addEventListener('click', () => {
+        sound.playClick();
+        const newTarget = parseInt(targetPointsInput.value, 10);
+        if (!isNaN(newTarget) && newTarget > 0) {
+          state.targetPoints = newTarget;
+          displayTargetPoints.textContent = newTarget;
+        }
+
+        const selectedMode = document.querySelector('input[name="scoringMode"]:checked');
+        if (selectedMode) {
+          state.mode = selectedMode.value;
+          updateModeBadge();
+        }
+
+        saveState();
+        renderPlayers();
+        settingsModal.classList.add('hidden');
+      });
+
+      // Reiniciar Partida
+      btnResetGame.addEventListener('click', () => {
+        sound.playClick();
+        showConfirm('Deseja zerar todas as pontuações e o histórico da partida atual?', () => {
+          state.players.forEach(p => p.score = 0);
+          state.rounds = [];
+          clearCalculator();
+          saveState();
+          renderPlayers();
+          renderHistory();
+        }, 'Reiniciar Partida');
+      });
+
+      // Modal de Vitória
+      btnNewGameVictory.addEventListener('click', () => {
+        sound.playClick();
+        state.players.forEach(p => p.score = 0);
+        state.rounds = [];
+        clearCalculator();
+        saveState();
+        renderPlayers();
+        renderHistory();
+        victoryModal.classList.add('hidden');
+      });
+
+      btnCloseVictory.addEventListener('click', () => {
+        sound.playClick();
+        victoryModal.classList.add('hidden');
+      });
+    }
+
+    function escapeHtml(string) {
+      const div = document.createElement('div');
+      div.textContent = string;
+      return div.innerHTML;
+    }
+
+    // Carregar aplicação
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
