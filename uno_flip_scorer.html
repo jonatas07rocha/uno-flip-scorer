@@ -160,7 +160,7 @@
         </form>
       </div>
 
-      <!-- Histórico de Rodadas -->
+      <!-- Histórico de Rodadas (Com exclusão individual de linhas) -->
       <div class="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm dark:shadow-xl flex flex-col flex-1 backdrop-blur-sm transition-colors duration-300">
         <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
           <h2 class="text-base font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
@@ -179,6 +179,7 @@
                 <th class="py-2.5 px-3">Lado</th>
                 <th class="py-2.5 px-3">Vencedor</th>
                 <th class="py-2.5 px-3 text-right">Pontos</th>
+                <th class="py-2.5 px-2 text-center w-10">Ação</th>
               </tr>
             </thead>
             <tbody id="roundsHistoryTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -945,6 +946,7 @@
       btnUndoRound.disabled = false;
 
       [...state.rounds].reverse().forEach((r) => {
+        const originalIndex = state.rounds.indexOf(r);
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors";
         tr.innerHTML = `
@@ -961,6 +963,11 @@
           </td>
           <td class="py-2.5 px-3 font-medium text-slate-800 dark:text-slate-200">${escapeHtml(r.winnerName)}</td>
           <td class="py-2.5 px-3 text-right font-mono font-bold text-amber-600 dark:text-amber-400">+${r.points}</td>
+          <td class="py-2.5 px-2 text-center">
+            <button data-delete-round-index="${originalIndex}" class="text-slate-400 hover:text-rose-500 p-1 transition" title="Excluir rodada">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
         `;
         roundsHistoryTableBody.appendChild(tr);
       });
@@ -1309,6 +1316,37 @@
             saveState();
             renderPlayers();
           }, 'Remover Jogador');
+        }
+      });
+
+      // Exclusão individual de rodadas na tabela de histórico
+      roundsHistoryTableBody.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('[data-delete-round-index]');
+        if (deleteBtn) {
+          sound.playClick();
+          const index = Number(deleteBtn.dataset.deleteRoundIndex);
+          const round = state.rounds[index];
+          if (!round) return;
+
+          showConfirm(`Deseja realmente excluir a Rodada ${round.roundNumber}? (${round.winnerName} +${round.points} pts)`, () => {
+            // Subtrai os pontos da pontuação do jogador
+            const player = state.players.find(p => p.id === round.winnerId);
+            if (player) {
+              player.score = Math.max(0, player.score - round.points);
+            }
+
+            // Remove a rodada do histórico
+            state.rounds.splice(index, 1);
+
+            // Re-indexa os números das rodadas restantes
+            state.rounds.forEach((r, i) => {
+              r.roundNumber = i + 1;
+            });
+
+            saveState();
+            renderPlayers();
+            renderHistory();
+          }, 'Excluir Rodada');
         }
       });
 
